@@ -1,0 +1,61 @@
+{
+  "adminPasswordHash": "d6657b3a17bd1abd4eecd491b3f523d662fda5585f48b5fa212f92689bedb12d",
+  "pricing": {
+    "monthlyPrice": 49000,
+    "monthlyOriginalPrice": 79000,
+    "yearlyPrice": 490000,
+    "yearlyOriginalPrice": 790000,
+    "currency": "IDR",
+    "promoBadgeText": "Hemat 2 Bulan",
+    "contactWhatsapp": "6281234567890",
+    "contactEmail": "support@mimbarconnect.com"
+  },
+  "licenses": [
+    {
+      "id": "seed-license-1",
+      "key": "MBR-DEMO-2026-PRO1",
+      "plan": "yearly",
+      "status": "active",
+      "customerName": "Gereja / Masjid Mitra Contoh",
+      "customerEmail": "operator@mimbarcontoh.org",
+      "organization": "Gereja Bethany Pusat",
+      "createdAt": "2026-09-03T14:48:05.768Z",
+      "expiresAt": "2027-09-03T14:48:05.768Z",
+      "boundDeviceId": null,
+      "boundDeviceName": null,
+      "boundDeviceOs": null,
+      "activatedAt": null,
+      "lastValidatedAt": null,
+      "notes": "Lisensi demo awal untuk pengujian"
+    },
+    {
+      "id": "seed-license-2",
+      "key": "MBR-TEST-LOCK-PC99",
+      "plan": "monthly",
+      "status": "active",
+      "customerName": "Auditorium Graha Solusi",
+      "customerEmail": "soundman@grahasolusi.com",
+      "organization": "Graha Solusi Audio Visual",
+      "createdAt": "2026-09-28T14:48:05.768Z",
+      "expiresAt": "2026-10-28T14:48:05.768Z",
+      "boundDeviceId": "PC-DESKTOP-STAGE-01",
+      "boundDeviceName": "OPERATOR-LAPTOP-MSI",
+      "boundDeviceOs": "Windows 11 Pro 64-bit",
+      "activatedAt": "2026-09-28T14:48:05.768Z",
+      "lastValidatedAt": "2026-10-03T14:48:05.768Z",
+      "notes": "Sedang terkunci di PC-DESKTOP-STAGE-01 untuk demo lock"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-seed-1",
+      "timestamp": "2026-09-28T14:48:05.768Z",
+      "licenseKey": "MBR-TEST-LOCK-PC99",
+      "action": "activate",
+      "status": "success",
+      "deviceId": "PC-DESKTOP-STAGE-01",
+      "deviceName": "OPERATOR-LAPTOP-MSI",
+      "details": "Aktivasi awal pada PC panggung"
+    }
+  ]
+}
