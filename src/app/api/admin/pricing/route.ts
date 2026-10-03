@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const pricing = getPricingSettings();
+  const pricing = await getPricingSettings();
   return NextResponse.json({ success: true, pricing });
 }
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const updated = updatePricingSettings({
+    const updated = await updatePricingSettings({
       monthlyPrice: Number(body.monthlyPrice) || 0,
       monthlyOriginalPrice: Number(body.monthlyOriginalPrice) || 0,
       yearlyPrice: Number(body.yearlyPrice) || 0,

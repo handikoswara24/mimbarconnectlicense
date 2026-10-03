@@ -10,7 +10,7 @@ async function handleValidate(key?: string, deviceId?: string) {
   }
 
   const cleanKey = key.trim().toUpperCase();
-  const license = getLicenseByKey(cleanKey);
+  const license = await getLicenseByKey(cleanKey);
 
   if (!license) {
     return NextResponse.json(
@@ -66,7 +66,7 @@ async function handleValidate(key?: string, deviceId?: string) {
     }
 
     // Update last validated timestamp
-    updateLicense(cleanKey, {
+    await updateLicense(cleanKey, {
       lastValidatedAt: now.toISOString()
     });
   }

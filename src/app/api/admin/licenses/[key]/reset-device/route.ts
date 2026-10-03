@@ -15,7 +15,7 @@ export async function POST(
     const { key } = await context.params;
     const cleanKey = decodeURIComponent(key);
 
-    const result = resetLicenseDevice(cleanKey);
+    const result = await resetLicenseDevice(cleanKey);
     if (!result.success) {
       return NextResponse.json({ error: result.message }, { status: 404 });
     }

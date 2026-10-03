@@ -9,42 +9,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const licenses = getLicenses();
   const searchParams = req.nextUrl.searchParams;
-  const search = searchParams.get("search")?.toLowerCase();
-  const status = searchParams.get("status");
-  const plan = searchParams.get("plan");
+  const search = searchParams.get("search") || undefined;
+  const status = searchParams.get("status") || undefined;
+  const plan = searchParams.get("plan") || undefined;
 
-  let filtered = licenses;
-
-  if (search) {
-    filtered = filtered.filter(
-      (l) =>
-        l.key.toLowerCase().includes(search) ||
-        l.customerName.toLowerCase().includes(search) ||
-        l.customerEmail.toLowerCase().includes(search) ||
-        (l.organization && l.organization.toLowerCase().includes(search)) ||
-        (l.boundDeviceName && l.boundDeviceName.toLowerCase().includes(search))
-    );
-  }
-
-  if (status && status !== "all") {
-    filtered = filtered.filter((l) => l.status === status);
-  }
-
-  if (plan && plan !== "all") {
-    filtered = filtered.filter((l) => l.plan === plan);
-  }
+  const filtered = await getLicenses({ search, status, plan });
+  const allLicenses = await getLicenses();
 
   // Calculate statistics
   const stats = {
-    total: licenses.length,
-    active: licenses.filter((l) => l.status === "active").length,
-    boundCount: licenses.filter((l) => l.boundDeviceId).length,
-    expiredCount: licenses.filter((l) => l.status === "expired").length,
-    revokedCount: licenses.filter((l) => l.status === "revoked").length,
-    monthlyCount: licenses.filter((l) => l.plan === "monthly").length,
-    yearlyCount: licenses.filter((l) => l.plan === "yearly").length
+    total: allLicenses.length,
+    active: allLicenses.filter((l) => l.status === "active").length,
+    boundCount: allLicenses.filter((l) => l.boundDeviceId).length,
+    expiredCount: allLicenses.filter((l) => l.status === "expired").length,
+    revokedCount: allLicenses.filter((l) => l.status === "revoked").length,
+    monthlyCount: allLicenses.filter((l) => l.plan === "monthly").length,
+    yearlyCount: allLicenses.filter((l) => l.plan === "yearly").length
   };
 
   return NextResponse.json({
@@ -71,7 +52,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const license = createLicense({
+    const license = await createLicense({
       plan: plan as PlanType,
       customerName,
       customerEmail,

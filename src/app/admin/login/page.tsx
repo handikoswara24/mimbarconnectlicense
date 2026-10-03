@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, Lock, ArrowRight, Loader2, AlertCircle, ArrowLeft, Monitor } from "lucide-react";
+import { ShieldCheck, Lock, User, ArrowRight, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function AdminLoginPage() {
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,12 +21,12 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ username, password })
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Password salah.");
+        throw new Error(data.error || "Username atau password salah.");
       }
 
       router.push("/admin");
@@ -73,7 +74,24 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Password Administrator:
+                Username Admin:
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+                <User className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Password:
               </label>
               <div className="relative">
                 <input
@@ -81,7 +99,7 @@ export default function AdminLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password admin..."
+                  placeholder="••••••••••••"
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                 />
                 <Lock className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
@@ -107,14 +125,19 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          {/* Quick Credential Hint for local setup */}
+          {/* Quick Credential Hint */}
           <div className="mt-6 pt-5 border-t border-slate-800 text-center">
             <span className="text-[11px] text-slate-400 block mb-1">
-              Password default admin:
+              Akun default MongoDB:
             </span>
-            <code className="text-xs font-mono font-bold text-cyan-400 bg-slate-900 px-2 py-1 rounded border border-slate-800">
-              adminmimbar123
-            </code>
+            <div className="flex items-center justify-center gap-2 text-xs font-mono">
+              <span className="bg-slate-900 px-2 py-1 rounded border border-slate-800 text-slate-300">
+                User: <strong className="text-cyan-400">admin</strong>
+              </span>
+              <span className="bg-slate-900 px-2 py-1 rounded border border-slate-800 text-slate-300">
+                Pass: <strong className="text-cyan-400">adminmimbar123</strong>
+              </span>
+            </div>
           </div>
         </div>
       </div>

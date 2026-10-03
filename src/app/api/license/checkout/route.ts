@@ -28,12 +28,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const pricing = getPricingSettings();
+    const pricing = await getPricingSettings();
     const durationMonths = plan === "yearly" ? 12 : 1;
     const price = plan === "yearly" ? pricing.yearlyPrice : pricing.monthlyPrice;
 
-    // Create license
-    const newLicense = createLicense({
+    // Create license in MongoDB
+    const newLicense = await createLicense({
       plan: plan as PlanType,
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim().toLowerCase(),

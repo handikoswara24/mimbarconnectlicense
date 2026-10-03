@@ -28,16 +28,23 @@ import {
   CheckCircle2,
   Loader2,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Users,
+  UserPlus,
+  Lock,
+  UserCheck
 } from "lucide-react";
-import { License, PricingSettings, ActivityLog, PlanType } from "@/lib/types";
+import { License, PricingSettings, ActivityLog, AdminUser, PlanType, AdminRole } from "@/lib/types";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"licenses" | "pricing" | "logs">("licenses");
+  const [activeTab, setActiveTab] = useState<"licenses" | "users" | "pricing" | "logs">("licenses");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Current logged in admin
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   // Licenses state
   const [licenses, setLicenses] = useState<License[]>([]);
@@ -55,6 +62,19 @@ export default function AdminDashboardPage() {
   const [newDuration, setNewDuration] = useState("12");
   const [newCustomKey, setNewCustomKey] = useState("");
   const [newNotes, setNewNotes] = useState("");
+
+  // Admin users state
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [showCreateAdminModal, setShowCreateAdminModal] = useState(false);
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminFullName, setAdminFullName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminRole, setAdminRole] = useState<AdminRole>("admin");
+
+  // Change password modal
+  const [editAdminId, setEditAdminId] = useState<string | null>(null);
+  const [newPasswordForAdmin, setNewPasswordForAdmin] = useState("");
 
   // Pricing settings state
   const [pricing, setPricing] = useState<PricingSettings>({
@@ -87,7 +107,8 @@ export default function AdminDashboardPage() {
         router.push("/admin/login");
         return;
       }
-      await Promise.all([loadLicenses(), loadPricing(), loadLogs()]);
+      setCurrentUser(authData.user);
+      await Promise.all([loadLicenses(), loadAdminUsers(), loadPricing(), loadLogs()]);
     } catch (err) {
       router.push("/admin/login");
     } finally {
@@ -114,6 +135,16 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.error("Failed to load licenses", err);
+    }
+  };
+
+  const loadAdminUsers = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.users) setAdminUsers(data.users);
+    } catch (err) {
+      console.error("Failed to load admin users", err);
     }
   };
 
@@ -177,7 +208,7 @@ export default function AdminDashboardPage() {
         throw new Error(data.error || "Gagal membuat lisensi.");
       }
 
-      showToast("success", `Lisensi ${data.license.key} berhasil dibuat!`);
+      showToast("success", `Lisensi ${data.license.key} berhasil dibuat di MongoDB!`);
       setShowCreateModal(false);
       setNewName("");
       setNewEmail("");
@@ -190,6 +221,88 @@ export default function AdminDashboardPage() {
       showToast("error", err.message);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Create Admin User
+  const handleCreateAdminUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: adminUsername,
+          password: adminPassword,
+          name: adminFullName,
+          email: adminEmail,
+          role: adminRole
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal membuat admin user.");
+      }
+
+      showToast("success", data.message || "User Admin berhasil dibuat!");
+      setShowCreateAdminModal(false);
+      setAdminUsername("");
+      setAdminPassword("");
+      setAdminFullName("");
+      setAdminEmail("");
+      loadAdminUsers();
+      loadLogs();
+    } catch (err: any) {
+      showToast("error", err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Change Admin Password
+  const handleChangeAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editAdminId || !newPasswordForAdmin.trim()) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${editAdminId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPasswordForAdmin })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal mengubah password admin.");
+      }
+
+      showToast("success", "Password admin berhasil diperbarui!");
+      setEditAdminId(null);
+      setNewPasswordForAdmin("");
+    } catch (err: any) {
+      showToast("error", err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Delete Admin User
+  const handleDeleteAdmin = async (id: string, username: string) => {
+    if (!confirm(`Hapus akun admin "${username}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal menghapus admin user.");
+      }
+      showToast("success", `Admin "${username}" berhasil dihapus.`);
+      loadAdminUsers();
+      loadLogs();
+    } catch (err: any) {
+      showToast("error", err.message);
     }
   };
 
@@ -303,7 +416,7 @@ export default function AdminDashboardPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Gagal menyimpan harga.");
       }
-      showToast("success", "Pengaturan harga & paket berhasil diperbarui!");
+      showToast("success", "Pengaturan harga & paket berhasil diperbarui di MongoDB!");
     } catch (err: any) {
       showToast("error", err.message);
     } finally {
@@ -322,7 +435,7 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
         <div className="flex items-center gap-3">
           <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
-          <span>Memuat Portal Admin...</span>
+          <span>Menghubungkan ke MongoDB Atlas...</span>
         </div>
       </div>
     );
@@ -340,15 +453,25 @@ export default function AdminDashboardPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white text-base">Mimbar Connect</span>
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
-                  Admin Console
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  MongoDB Atlas
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 -mt-0.5">License & Subscription Control</p>
+              <p className="text-[11px] text-slate-400 -mt-0.5">License & User Control Hub</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            {currentUser && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+                <span className="text-slate-400">Login:</span>
+                <strong className="text-white">{currentUser.name}</strong>
+                <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+                  {currentUser.role}
+                </span>
+              </div>
+            )}
             <Link
               href="/"
               target="_blank"
@@ -403,6 +526,17 @@ export default function AdminDashboardPage() {
             <span>Manajemen Kunci Lisensi ({stats.total || 0})</span>
           </button>
           <button
+            onClick={() => setActiveTab("users")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "users"
+                ? "bg-cyan-950 text-cyan-300 border border-cyan-700/80 shadow"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Manajemen User Admin ({adminUsers.length})</span>
+          </button>
+          <button
             onClick={() => setActiveTab("pricing")}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "pricing"
@@ -435,9 +569,9 @@ export default function AdminDashboardPage() {
             {/* Stat Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl glass-card border border-slate-800">
-                <span className="text-xs text-slate-400 block mb-1">Total Lisensi</span>
+                <span className="text-xs text-slate-400 block mb-1">Total Lisensi MongoDB</span>
                 <div className="text-2xl font-black text-white">{stats.total || 0}</div>
-                <div className="text-[11px] text-slate-500 mt-1">Semua terbitan sistem</div>
+                <div className="text-[11px] text-slate-500 mt-1">Database Atlas</div>
               </div>
               <div className="p-4 rounded-2xl glass-card border border-slate-800">
                 <span className="text-xs text-emerald-400 block mb-1">Terkunci di PC (Aktif)</span>
@@ -692,7 +826,101 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* ===================== TAB 2: PRICING SETTINGS ===================== */}
+        {/* ===================== TAB 2: ADMIN USERS MANAGEMENT ===================== */}
+        {activeTab === "users" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-white">Daftar Pengguna Administrator</h3>
+                <p className="text-xs text-slate-400">
+                  User yang memiliki wewenang untuk mengelola lisensi, reset device, dan pengaturan harga.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowCreateAdminModal(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-cyan-500/20 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Tambah Admin Baru</span>
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900 border-b border-slate-800 text-slate-400 font-semibold">
+                      <th className="py-3.5 px-4">Nama Lengkap</th>
+                      <th className="py-3.5 px-4">Username</th>
+                      <th className="py-3.5 px-4">Email</th>
+                      <th className="py-3.5 px-4">Role / Peran</th>
+                      <th className="py-3.5 px-4">Login Terakhir</th>
+                      <th className="py-3.5 px-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {adminUsers.map((admin) => (
+                      <tr key={admin.id} className="hover:bg-slate-900/40">
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-white">{admin.name}</div>
+                          <div className="text-[10px] text-slate-500">
+                            Dibuat: {new Date(admin.createdAt).toLocaleDateString("id-ID")}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <code className="text-cyan-400 font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                            {admin.username}
+                          </code>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-300">{admin.email}</td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
+                              admin.role === "superadmin"
+                                ? "bg-amber-950 text-amber-300 border border-amber-800"
+                                : "bg-cyan-950 text-cyan-300 border border-cyan-800"
+                            }`}
+                          >
+                            {admin.role}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-400">
+                          {admin.lastLoginAt
+                            ? new Date(admin.lastLoginAt).toLocaleString("id-ID")
+                            : "Belum pernah login"}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setEditAdminId(admin.id);
+                                setNewPasswordForAdmin("");
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors text-[11px] flex items-center gap-1"
+                            >
+                              <Lock className="w-3 h-3" />
+                              <span>Ganti Password</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAdmin(admin.id, admin.username)}
+                              className="p-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/60 border border-red-800/60 transition-colors"
+                              title="Hapus Admin"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================== TAB 3: PRICING SETTINGS ===================== */}
         {activeTab === "pricing" && (
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="rounded-3xl glass-panel border border-slate-800 p-8 shadow-2xl">
@@ -703,7 +931,7 @@ export default function AdminDashboardPage() {
                 <div>
                   <h3 className="text-xl font-bold text-white">Pengaturan Harga Berlangganan</h3>
                   <p className="text-xs text-slate-400">
-                    Perubahan harga di sini akan langsung tampil pada Landing Page dan proses Checkout.
+                    Tersimpan langsung di collection MongoDB `settings`.
                   </p>
                 </div>
               </div>
@@ -844,7 +1072,7 @@ export default function AdminDashboardPage() {
                   {actionLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Menyimpan Pengaturan...</span>
+                      <span>Menyimpan ke MongoDB...</span>
                     </>
                   ) : (
                     <>
@@ -858,7 +1086,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* ===================== TAB 3: AUDIT LOGS ===================== */}
+        {/* ===================== TAB 4: AUDIT LOGS ===================== */}
         {activeTab === "logs" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -937,7 +1165,7 @@ export default function AdminDashboardPage() {
           <div className="relative w-full max-w-md rounded-3xl glass-panel border border-slate-700/80 shadow-2xl p-6 sm:p-8 my-8">
             <h3 className="text-xl font-bold text-white mb-1">Terbitkan Lisensi Baru</h3>
             <p className="text-xs text-slate-400 mb-6">
-              Lisensi akan otomatis terkunci pada 1 PC saat pertama kali diaktivasi.
+              Lisensi akan otomatis tersimpan di MongoDB dan terkunci di 1 PC saat pertama kali diaktivasi.
             </p>
 
             <form onSubmit={handleCreateLicense} className="space-y-4">
@@ -1043,6 +1271,152 @@ export default function AdminDashboardPage() {
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-cyan-500/20 disabled:opacity-50"
                 >
                   {actionLoading ? "Membuat..." : "Terbitkan Key"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL: TAMBAH ADMIN BARU ===================== */}
+      {showCreateAdminModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-md rounded-3xl glass-panel border border-slate-700/80 shadow-2xl p-6 sm:p-8 my-8">
+            <h3 className="text-xl font-bold text-white mb-1">Tambah Admin Baru</h3>
+            <p className="text-xs text-slate-400 mb-6">
+              User baru akan disimpan langsung di collection MongoDB `admins`.
+            </p>
+
+            <form onSubmit={handleCreateAdminUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Nama Lengkap:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminFullName}
+                  onChange={(e) => setAdminFullName(e.target.value)}
+                  placeholder="Contoh: David Kristanto"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Username Login:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminUsername}
+                  onChange={(e) => setAdminUsername(e.target.value)}
+                  placeholder="david_operator"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Email:
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="david@example.com"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Password:
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Role:
+                </label>
+                <select
+                  value={adminRole}
+                  onChange={(e) => setAdminRole(e.target.value as AdminRole)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="admin">Admin Standar</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAdminModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-cyan-500/20 disabled:opacity-50"
+                >
+                  {actionLoading ? "Menyimpan..." : "Simpan Admin"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL: GANTI PASSWORD ADMIN ===================== */}
+      {editAdminId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-sm rounded-3xl glass-panel border border-slate-700/80 shadow-2xl p-6 sm:p-8 my-8">
+            <h3 className="text-lg font-bold text-white mb-1">Ganti Password Admin</h3>
+            <p className="text-xs text-slate-400 mb-5">
+              Masukkan password baru untuk akun admin ini.
+            </p>
+
+            <form onSubmit={handleChangeAdminPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Password Baru:
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={newPasswordForAdmin}
+                  onChange={(e) => setNewPasswordForAdmin(e.target.value)}
+                  placeholder="Minimal 6 karakter"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditAdminId(null)}
+                  className="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md disabled:opacity-50"
+                >
+                  {actionLoading ? "Menyimpan..." : "Update Password"}
                 </button>
               </div>
             </form>

@@ -1,5 +1,16 @@
 export type PlanType = "monthly" | "yearly" | "lifetime" | "trial";
 export type LicenseStatus = "active" | "revoked" | "expired";
+export type AdminRole = "superadmin" | "admin";
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  role: AdminRole;
+  createdAt: string;
+  lastLoginAt?: string;
+}
 
 export interface License {
   id: string;
@@ -34,17 +45,10 @@ export interface ActivityLog {
   id: string;
   timestamp: string;
   licenseKey: string;
-  action: "activate" | "disconnect" | "validate" | "force_disconnect" | "create" | "revoke" | "renew";
+  action: "activate" | "disconnect" | "validate" | "force_disconnect" | "create" | "revoke" | "renew" | "admin_login";
   status: "success" | "rejected" | "error";
   deviceId?: string;
   deviceName?: string;
   ip?: string;
   details?: string;
-}
-
-export interface DatabaseSchema {
-  licenses: License[];
-  pricing: PricingSettings;
-  adminPasswordHash: string; // Simple secure storage
-  logs: ActivityLog[];
 }

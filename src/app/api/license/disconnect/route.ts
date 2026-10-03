@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanKey = key.trim().toUpperCase();
-    const license = getLicenseByKey(cleanKey);
+    const license = await getLicenseByKey(cleanKey);
 
     if (!license) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     // Verify device ownership: only the bound device (or admin) can disconnect
     if (license.boundDeviceId !== deviceId) {
-      addLog({
+      await addLog({
         licenseKey: cleanKey,
         action: "disconnect",
         status: "rejected",
@@ -60,14 +60,14 @@ export async function POST(req: NextRequest) {
     const previousDeviceName = license.boundDeviceName || license.boundDeviceId;
 
     // Disconnect: release device lock
-    updateLicense(cleanKey, {
+    await updateLicense(cleanKey, {
       boundDeviceId: null,
       boundDeviceName: null,
       boundDeviceOs: null,
       activatedAt: null
     });
 
-    addLog({
+    await addLog({
       licenseKey: cleanKey,
       action: "disconnect",
       status: "success",

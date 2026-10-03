@@ -3,7 +3,7 @@ import { getPricingSettings } from "@/lib/db";
 
 export async function GET() {
   try {
-    const pricing = getPricingSettings();
+    const pricing = await getPricingSettings();
     return NextResponse.json({
       success: true,
       pricing

@@ -12,7 +12,7 @@ export async function GET(
   }
 
   const { key } = await context.params;
-  const license = getLicenseByKey(decodeURIComponent(key));
+  const license = await getLicenseByKey(decodeURIComponent(key));
   if (!license) {
     return NextResponse.json({ error: "Lisensi tidak ditemukan" }, { status: 404 });
   }
@@ -34,14 +34,14 @@ export async function PATCH(
     const cleanKey = decodeURIComponent(key);
     const body = await req.json();
 
-    const current = getLicenseByKey(cleanKey);
+    const current = await getLicenseByKey(cleanKey);
     if (!current) {
       return NextResponse.json({ error: "Lisensi tidak ditemukan" }, { status: 404 });
     }
 
-    const updated = updateLicense(cleanKey, body);
+    const updated = await updateLicense(cleanKey, body);
 
-    addLog({
+    await addLog({
       licenseKey: cleanKey,
       action: body.status === "revoked" ? "revoke" : "renew",
       status: "success",
@@ -71,7 +71,7 @@ export async function DELETE(
   try {
     const { key } = await context.params;
     const cleanKey = decodeURIComponent(key);
-    const success = deleteLicense(cleanKey);
+    const success = await deleteLicense(cleanKey);
 
     if (!success) {
       return NextResponse.json({ error: "Lisensi tidak ditemukan" }, { status: 404 });

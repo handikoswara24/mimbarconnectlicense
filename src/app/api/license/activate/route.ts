@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanKey = key.trim().toUpperCase();
-    const license = getLicenseByKey(cleanKey);
+    const license = await getLicenseByKey(cleanKey);
 
     if (!license) {
-      addLog({
+      await addLog({
         licenseKey: cleanKey,
         action: "activate",
         status: "rejected",
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (license.status === "revoked") {
-      addLog({
+      await addLog({
         licenseKey: cleanKey,
         action: "activate",
         status: "rejected",
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const expiresAt = new Date(license.expiresAt);
     if (expiresAt < now) {
-      addLog({
+      await addLog({
         licenseKey: cleanKey,
         action: "activate",
         status: "rejected",
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     // If bound to a different PC, refuse activation until disconnected
     if (license.boundDeviceId && license.boundDeviceId !== deviceId) {
       const activeDeviceName = license.boundDeviceName || license.boundDeviceId;
-      addLog({
+      await addLog({
         licenseKey: cleanKey,
         action: "activate",
         status: "rejected",
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     // Activate or re-activate on this device
     const nowIso = now.toISOString();
-    updateLicense(cleanKey, {
+    await updateLicense(cleanKey, {
       boundDeviceId: deviceId,
       boundDeviceName: deviceName || license.boundDeviceName || "Desktop PC",
       boundDeviceOs: osInfo || license.boundDeviceOs || "Windows",
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       lastValidatedAt: nowIso
     });
 
-    addLog({
+    await addLog({
       licenseKey: cleanKey,
       action: "activate",
       status: "success",
